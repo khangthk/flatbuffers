@@ -1,4 +1,4 @@
-// swift-tools-version:5.8
+// swift-tools-version:5.10
 /*
  * Copyright 2020 Google Inc. All rights reserved.
  *
@@ -26,7 +26,7 @@ let package = Package(
     .package(path: "../.."),
     .package(
       url: "https://github.com/ordo-one/package-benchmark",
-      from: "1.12.0"),
+      from: "1.27.0"),
   ],
   targets: [
     .executableTarget(
@@ -36,6 +36,16 @@ let package = Package(
         .product(name: "Benchmark", package: "package-benchmark"),
       ],
       path: "Benchmarks/FlatbuffersBenchmarks",
+      plugins: [
+        .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
+      ]),
+    .executableTarget(
+      name: "FlexBuffersBenchmarks",
+      dependencies: [
+        .product(name: "FlexBuffers", package: "flatbuffers"),
+        .product(name: "Benchmark", package: "package-benchmark"),
+      ],
+      path: "Benchmarks/FlexBuffersBenchmarks",
       plugins: [
         .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
       ]),

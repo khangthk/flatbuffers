@@ -4,7 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { OptionalByte } from '../optional-scalars/optional-byte.js';
+import { OptionalByte } from './optional-byte.js';
 
 
 export class ScalarStuff {
@@ -209,7 +209,7 @@ defaultEnum():OptionalByte {
   return offset ? this.bb!.readInt8(this.bb_pos + offset) : OptionalByte.One;
 }
 
-static getFullyQualifiedName():string {
+static getFullyQualifiedName(): "optional_scalars.ScalarStuff" {
   return 'optional_scalars.ScalarStuff';
 }
 

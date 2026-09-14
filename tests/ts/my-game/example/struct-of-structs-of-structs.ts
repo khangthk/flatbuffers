@@ -4,7 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { StructOfStructs, StructOfStructsT } from '../../my-game/example/struct-of-structs.js';
+import { StructOfStructs, StructOfStructsT } from './struct-of-structs.js';
 
 
 export class StructOfStructsOfStructs implements flatbuffers.IUnpackableObject<StructOfStructsOfStructsT> {
@@ -20,7 +20,7 @@ a(obj?:StructOfStructs):StructOfStructs|null {
   return (obj || new StructOfStructs()).__init(this.bb_pos, this.bb!);
 }
 
-static getFullyQualifiedName():string {
+static getFullyQualifiedName(): "MyGame.Example.StructOfStructsOfStructs" {
   return 'MyGame.Example.StructOfStructsOfStructs';
 }
 

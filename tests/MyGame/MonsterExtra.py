@@ -5,6 +5,7 @@
 import flatbuffers
 from flatbuffers.compat import import_numpy
 from typing import Any
+from typing import Iterable
 np = import_numpy()
 
 class MonsterExtra(object):
@@ -205,6 +206,16 @@ def MonsterExtraStartDvecVector(builder, numElems: int) -> int:
 def StartDvecVector(builder, numElems: int) -> int:
     return MonsterExtraStartDvecVector(builder, numElems)
 
+def MonsterExtraCreateDvecVector(builder: flatbuffers.Builder, data: Iterable[Any]) -> int:
+    data = list(data)
+    builder.StartVector(8, len(data), 8)
+    for item in reversed(data):
+        builder.PrependFloat64(item)
+    return builder.EndVector()
+
+def CreateDvecVector(builder: flatbuffers.Builder, data: Iterable[Any]) -> int:
+    return MonsterExtraCreateDvecVector(builder, data)
+
 def MonsterExtraAddFvec(builder: flatbuffers.Builder, fvec: int):
     builder.PrependUOffsetTRelativeSlot(9, flatbuffers.number_types.UOffsetTFlags.py_type(fvec), 0)
 
@@ -216,6 +227,16 @@ def MonsterExtraStartFvecVector(builder, numElems: int) -> int:
 
 def StartFvecVector(builder, numElems: int) -> int:
     return MonsterExtraStartFvecVector(builder, numElems)
+
+def MonsterExtraCreateFvecVector(builder: flatbuffers.Builder, data: Iterable[Any]) -> int:
+    data = list(data)
+    builder.StartVector(4, len(data), 4)
+    for item in reversed(data):
+        builder.PrependFloat32(item)
+    return builder.EndVector()
+
+def CreateFvecVector(builder: flatbuffers.Builder, data: Iterable[Any]) -> int:
+    return MonsterExtraCreateFvecVector(builder, data)
 
 def MonsterExtraEnd(builder: flatbuffers.Builder) -> int:
     return builder.EndObject()
@@ -231,17 +252,29 @@ except:
 class MonsterExtraT(object):
 
     # MonsterExtraT
-    def __init__(self):
-        self.d0 = float('nan')  # type: float
-        self.d1 = float('nan')  # type: float
-        self.d2 = float('inf')  # type: float
-        self.d3 = float('-inf')  # type: float
-        self.f0 = float('nan')  # type: float
-        self.f1 = float('nan')  # type: float
-        self.f2 = float('inf')  # type: float
-        self.f3 = float('-inf')  # type: float
-        self.dvec = None  # type: List[float]
-        self.fvec = None  # type: List[float]
+    def __init__(
+        self,
+        d0 = float('nan'),
+        d1 = float('nan'),
+        d2 = float('inf'),
+        d3 = float('-inf'),
+        f0 = float('nan'),
+        f1 = float('nan'),
+        f2 = float('inf'),
+        f3 = float('-inf'),
+        dvec = None,
+        fvec = None,
+    ):
+        self.d0 = d0  # type: float
+        self.d1 = d1  # type: float
+        self.d2 = d2  # type: float
+        self.d3 = d3  # type: float
+        self.f0 = f0  # type: float
+        self.f1 = f1  # type: float
+        self.f2 = f2  # type: float
+        self.f3 = f3  # type: float
+        self.dvec = dvec  # type: Optional[List[float]]
+        self.fvec = fvec  # type: Optional[List[float]]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
@@ -270,8 +303,8 @@ class MonsterExtraT(object):
             self.f1 == other.f1 and \
             self.f2 == other.f2 and \
             self.f3 == other.f3 and \
-            self.dvec == other.dvec and \
-            self.fvec == other.fvec
+            np.array_equal(self.dvec, other.dvec) and \
+            np.array_equal(self.fvec, other.fvec)
 
     # MonsterExtraT
     def _UnPack(self, monsterExtra):

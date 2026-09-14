@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+use core::cmp::Ordering;
 use core::fmt::{Debug, Formatter, Result};
 use core::iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator};
+#[cfg(nightly)]
+use core::iter::TrustedLen;
 use core::marker::PhantomData;
 use core::mem::{align_of, size_of};
 use core::str::from_utf8_unchecked;
@@ -30,11 +33,7 @@ impl<'a, T: 'a> Default for Vector<'a, T> {
     fn default() -> Self {
         // Static, length 0 vector.
         // Note that derived default causes UB due to issues in read_scalar_at /facepalm.
-        Self(
-            &[0; core::mem::size_of::<UOffsetT>()],
-            0,
-            Default::default(),
-        )
+        Self(&[0; core::mem::size_of::<UOffsetT>()], 0, Default::default())
     }
 }
 
@@ -100,6 +99,51 @@ impl<'a, T: Follow<'a> + 'a> Vector<'a, T> {
         // Safety:
         // Valid vector at time of construction, verified that idx < element count
         unsafe { T::follow(self.0, self.1 as usize + SIZE_UOFFSET + sz * idx) }
+    }
+
+    #[inline(always)]
+    pub fn lookup_by_key<K: Ord>(
+        &self,
+        key: K,
+        f: fn(&<T as Follow<'a>>::Inner, &K) -> Ordering,
+    ) -> Option<T::Inner> {
+        self.lookup_index_by_key(key, f).map(|idx| self.get(idx))
+    }
+
+    /// Binary search by key, returning the index of the matching element.
+    ///
+    /// This is similar to `lookup_by_key`, but returns the index of the found
+    /// element rather than the element itself. This is useful when you need
+    /// to reference elements by their position in the vector.
+    #[inline(always)]
+    pub fn lookup_index_by_key<K: Ord>(
+        &self,
+        key: K,
+        f: fn(&<T as Follow<'a>>::Inner, &K) -> Ordering,
+    ) -> Option<usize> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let mut left: usize = 0;
+        let mut right = self.len() - 1;
+
+        while left <= right {
+            let mid = (left + right) / 2;
+            let value = self.get(mid);
+            match f(&value, &key) {
+                Ordering::Equal => return Some(mid),
+                Ordering::Less => left = mid + 1,
+                Ordering::Greater => {
+                    if mid == 0 {
+                        return None;
+                    }
+                    right = mid - 1;
+                }
+            }
+        }
+
+        None
     }
 
     #[inline(always)]
@@ -177,12 +221,7 @@ impl<'a, T: 'a> VectorIter<'a, T> {
     ///
     #[inline]
     pub unsafe fn from_slice(buf: &'a [u8], items_num: usize) -> Self {
-        VectorIter {
-            buf,
-            loc: 0,
-            remaining: items_num,
-            phantom: PhantomData,
-        }
+        VectorIter { buf, loc: 0, remaining: items_num, phantom: PhantomData }
     }
 }
 
@@ -269,6 +308,9 @@ impl<'a, T: 'a + Follow<'a>> ExactSizeIterator for VectorIter<'a, T> {
         self.remaining
     }
 }
+
+#[cfg(nightly)]
+unsafe impl<'a, T: Follow<'a> + 'a> TrustedLen for VectorIter<'a, T> {}
 
 impl<'a, T: 'a + Follow<'a>> FusedIterator for VectorIter<'a, T> {}
 

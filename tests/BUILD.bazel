@@ -1,7 +1,6 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
-load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//:build_defs.bzl", "DEFAULT_FLATC_ARGS", "flatbuffer_cc_library")
-load(":defs.bzl", "flatbuffers_as_external_repo_test")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -34,6 +33,8 @@ cc_test(
         "alignment_test.cpp",
         "alignment_test.h",
         "alignment_test_generated.h",
+        "default_vectors_strings_test.cpp",
+        "default_vectors_strings_test.h",
         "evolution_test.cpp",
         "evolution_test.h",
         "evolution_test/evolution_v1_generated.h",
@@ -51,6 +52,7 @@ cc_test(
         "monster_test.cpp",
         "monster_test.h",
         "monster_test_bfbs_generated.h",
+        "cross_namespace_pack_test_generated.h",
         "namespace_test/namespace_test1_generated.h",
         "namespace_test/namespace_test2_generated.h",
         "native_inline_table_test_generated.h",
@@ -74,6 +76,9 @@ cc_test(
         "union_vector/union_vector_generated.h",
         "util_test.cpp",
         "util_test.h",
+        "vector_table_naked_ptr/vector_table_naked_ptr_generated.h",
+        "vector_table_naked_ptr_test.h",
+        "vector_table_naked_ptr_test.cpp",
     ],
     copts = [
         "-DFLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE",
@@ -132,6 +137,8 @@ cc_test(
     deps = [
         ":alignment_test_cc_fbs",
         ":arrays_test_cc_fbs",
+        ":cross_namespace_pack_test_cc_fbs",
+        ":default_vectors_strings_test_cc_fbs",
         ":monster_extra_cc_fbs",
         ":monster_test_cc_fbs",
         ":native_type_test_cc_fbs",
@@ -211,6 +218,7 @@ flatbuffer_cc_library(
 include_test_args = [
     "--gen-object-api",
     "--gen-compare",
+    "--gen-absl-hash",
     "--gen-mutable",
     "--reflect-names",
     "--cpp-ptr-type flatbuffers::unique_ptr",
@@ -256,6 +264,17 @@ flatbuffer_cc_library(
 )
 
 flatbuffer_cc_library(
+    name = "cross_namespace_pack_test_cc_fbs",
+    srcs = ["cross_namespace_pack_test.fbs"],
+    flatc_args = [
+        "--gen-object-api",
+        "--gen-mutable",
+        "--gen-compare",
+        "--reflect-names",
+    ],
+)
+
+flatbuffer_cc_library(
     name = "native_type_test_cc_fbs",
     srcs = ["native_type_test.fbs"],
     flatc_args = [
@@ -270,7 +289,15 @@ flatbuffer_cc_library(
     srcs = ["alignment_test.fbs"],
 )
 
-flatbuffers_as_external_repo_test(
-    name = "bazel_repository_test",
-    directory = "bazel_repository_test_dir",
+flatbuffer_cc_library(
+    name = "default_vectors_strings_test_cc_fbs",
+    srcs = ["default_vectors_strings_test.fbs"],
+    flatc_args = [
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+        "--filename-suffix .fbs",
+    ],
+    filename_suffix = ".fbs"
 )

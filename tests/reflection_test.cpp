@@ -1,6 +1,5 @@
 #include "reflection_test.h"
 
-#include "tests/arrays_test_generated.h"
 #include "flatbuffers/minireflect.h"
 #include "flatbuffers/reflection.h"
 #include "flatbuffers/reflection_generated.h"
@@ -8,13 +7,14 @@
 #include "monster_test.h"
 #include "monster_test_generated.h"
 #include "test_assert.h"
+#include "tests/arrays_test_generated.h"
 
 namespace flatbuffers {
 namespace tests {
 
 using namespace MyGame::Example;
 
-void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
+void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
                     size_t length) {
   // Load a binary schema.
   std::string bfbsfile;
@@ -24,11 +24,11 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
 
   // Verify it, just in case:
   flatbuffers::Verifier verifier(
-      reinterpret_cast<const uint8_t *>(bfbsfile.c_str()), bfbsfile.length());
+      reinterpret_cast<const uint8_t*>(bfbsfile.c_str()), bfbsfile.length());
   TEST_EQ(reflection::VerifySchemaBuffer(verifier), true);
 
   // Make sure the schema is what we expect it to be.
-  auto &schema = *reflection::GetSchema(bfbsfile.c_str());
+  auto& schema = *reflection::GetSchema(bfbsfile.c_str());
   auto root_table = schema.root_table();
 
   // Check the declaration files.
@@ -83,7 +83,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   auto fields = root_table->fields();
   auto hp_field_ptr = fields->LookupByKey("hp");
   TEST_NOTNULL(hp_field_ptr);
-  auto &hp_field = *hp_field_ptr;
+  auto& hp_field = *hp_field_ptr;
   TEST_EQ_STR(hp_field.name()->c_str(), "hp");
   TEST_EQ(hp_field.id(), 2);
   TEST_EQ(hp_field.type()->base_type(), reflection::Short);
@@ -108,7 +108,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   TEST_EQ(fields->LookupByKey("name")->optional(), false);
 
   // Now use it to dynamically access a buffer.
-  auto &root = *flatbuffers::GetAnyRoot(flatbuf);
+  auto& root = *flatbuffers::GetAnyRoot(flatbuf);
 
   // Verify the buffer first using reflection based verification
   TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(), flatbuf, length),
@@ -169,7 +169,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   // First we put the FlatBuffer inside an std::vector.
   std::vector<uint8_t> resizingbuf(flatbuf, flatbuf + length);
   // Find the field we want to modify.
-  auto &name_field = *fields->LookupByKey("name");
+  auto& name_field = *fields->LookupByKey("name");
   // Get the root.
   // This time we wrap the result from GetAnyRoot in a smartpointer that
   // will keep rroot valid as resizingbuf resizes.
@@ -180,7 +180,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   // Here resizingbuf has changed, but rroot is still valid.
   TEST_EQ_STR(GetFieldS(**rroot, name_field)->c_str(), "totally new string");
   // Now lets extend a vector by 100 elements (10 -> 110).
-  auto &inventory_field = *fields->LookupByKey("inventory");
+  auto& inventory_field = *fields->LookupByKey("inventory");
   auto rinventory = flatbuffers::piv(
       flatbuffers::GetFieldV<uint8_t>(**rroot, inventory_field), resizingbuf);
   flatbuffers::ResizeVector<uint8_t>(schema, 110, 50, *rinventory,
@@ -193,7 +193,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   // FlatBuffer of its own, then add that to an existing FlatBuffer:
   // As an example, let's add a string to an array of strings.
   // First, find our field:
-  auto &testarrayofstring_field = *fields->LookupByKey("testarrayofstring");
+  auto& testarrayofstring_field = *fields->LookupByKey("testarrayofstring");
   // Find the vector value:
   auto rtestarrayofstring = flatbuffers::piv(
       flatbuffers::GetFieldV<flatbuffers::Offset<flatbuffers::String>>(
@@ -218,8 +218,7 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
   TEST_EQ_STR(rtestarrayofstring->Get(2)->c_str(), "hank");
   // Test integrity of all resize operations above.
   flatbuffers::Verifier resize_verifier(
-      reinterpret_cast<const uint8_t *>(resizingbuf.data()),
-      resizingbuf.size());
+      reinterpret_cast<const uint8_t*>(resizingbuf.data()), resizingbuf.size());
   TEST_EQ(VerifyMonsterBuffer(resize_verifier), true);
 
   // Test buffer is valid using reflection as well
@@ -249,7 +248,94 @@ void ReflectionTest(const std::string &tests_data_path, uint8_t *flatbuf,
           true);
 }
 
-void MiniReflectFlatBuffersTest(uint8_t *flatbuf) {
+// Test that ForAllFields with reverse=true iterates fields in descending
+// ID order. This exercises a fix for an operator precedence bug where the
+// expression `size() - i + 1` was evaluated as `(size() - i) + 1` instead
+// of the correct `size() - (i + 1)`, causing an out-of-bounds read.
+void ForAllFieldsReverseTest(const std::string& tests_data_path) {
+  // Load the binary schema.
+  std::string bfbsfile;
+  TEST_EQ(flatbuffers::LoadFile((tests_data_path + "monster_test.bfbs").c_str(),
+                                true, &bfbsfile),
+          true);
+
+  // Verify the schema.
+  flatbuffers::Verifier verifier(
+      reinterpret_cast<const uint8_t*>(bfbsfile.c_str()), bfbsfile.length());
+  TEST_EQ(reflection::VerifySchemaBuffer(verifier), true);
+
+  auto& schema = *reflection::GetSchema(bfbsfile.c_str());
+
+  // Use the Stat table which has 3 fields with sequential IDs:
+  //   id:string   (id: 0)
+  //   val:long     (id: 1)
+  //   count:ushort (id: 2)
+  auto stat_object = schema.objects()->LookupByKey("MyGame.Example.Stat");
+  TEST_NOTNULL(stat_object);
+  TEST_EQ(stat_object->fields()->size(), 3u);
+
+  // Test forward iteration: fields should come in ascending ID order (0,1,2).
+  {
+    std::vector<uint16_t> forward_ids;
+    flatbuffers::ForAllFields(
+        stat_object, /*reverse=*/false,
+        [&forward_ids](const reflection::Field* field) {
+          forward_ids.push_back(field->id());
+        });
+    TEST_EQ(forward_ids.size(), 3u);
+    TEST_EQ(forward_ids[0], 0);  // id
+    TEST_EQ(forward_ids[1], 1);  // val
+    TEST_EQ(forward_ids[2], 2);  // count
+  }
+
+  // Test reverse iteration: fields should come in descending ID order (2,1,0).
+  // With the old buggy code `size() - i + 1`, at i=0 this would compute
+  // index 3 - 0 + 1 = 4, which is out of bounds for a size-3 vector.
+  {
+    std::vector<uint16_t> reverse_ids;
+    flatbuffers::ForAllFields(
+        stat_object, /*reverse=*/true,
+        [&reverse_ids](const reflection::Field* field) {
+          reverse_ids.push_back(field->id());
+        });
+    TEST_EQ(reverse_ids.size(), 3u);
+    TEST_EQ(reverse_ids[0], 2);  // count (highest ID first)
+    TEST_EQ(reverse_ids[1], 1);  // val
+    TEST_EQ(reverse_ids[2], 0);  // id (lowest ID last)
+  }
+
+  // Also test with the root Monster table which has many fields and
+  // non-sequential definition order vs. ID order (e.g., pos=id:0, hp=id:2,
+  // mana=id:1). This ensures the ID-to-index mapping works correctly.
+  auto root_table = schema.root_table();
+  TEST_NOTNULL(root_table);
+  {
+    std::vector<uint16_t> forward_ids;
+    flatbuffers::ForAllFields(
+        root_table, /*reverse=*/false,
+        [&forward_ids](const reflection::Field* field) {
+          forward_ids.push_back(field->id());
+        });
+    // Verify ascending order.
+    for (size_t i = 1; i < forward_ids.size(); ++i) {
+      TEST_ASSERT(forward_ids[i - 1] < forward_ids[i]);
+    }
+  }
+  {
+    std::vector<uint16_t> reverse_ids;
+    flatbuffers::ForAllFields(
+        root_table, /*reverse=*/true,
+        [&reverse_ids](const reflection::Field* field) {
+          reverse_ids.push_back(field->id());
+        });
+    // Verify descending order.
+    for (size_t i = 1; i < reverse_ids.size(); ++i) {
+      TEST_ASSERT(reverse_ids[i - 1] > reverse_ids[i]);
+    }
+  }
+}
+
+void MiniReflectFlatBuffersTest(uint8_t* flatbuf) {
   auto s =
       flatbuffers::FlatBufferToString(flatbuf, Monster::MiniReflectTypeTable());
   TEST_EQ_STR(

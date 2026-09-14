@@ -4,7 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { Color } from '../../my-game/example/color.js';
+import { Color } from './color.js';
 
 
 export class TestSimpleTableWithEnum implements flatbuffers.IUnpackableObject<TestSimpleTableWithEnumT> {
@@ -41,7 +41,7 @@ mutate_color(value:Color):boolean {
   return true;
 }
 
-static getFullyQualifiedName():string {
+static getFullyQualifiedName(): "MyGame.Example.TestSimpleTableWithEnum" {
   return 'MyGame.Example.TestSimpleTableWithEnum';
 }
 

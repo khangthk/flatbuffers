@@ -4,8 +4,8 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { Color } from '../../my-game/example/color.js';
-import { Test, TestT } from '../../my-game/example/test.js';
+import { Color } from './color.js';
+import { Test, TestT } from './test.js';
 
 
 export class Vec3 implements flatbuffers.IUnpackableObject<Vec3T> {
@@ -66,7 +66,7 @@ test3(obj?:Test):Test|null {
   return (obj || new Test()).__init(this.bb_pos + 26, this.bb!);
 }
 
-static getFullyQualifiedName():string {
+static getFullyQualifiedName(): "MyGame.Example.Vec3" {
   return 'MyGame.Example.Vec3';
 }
 

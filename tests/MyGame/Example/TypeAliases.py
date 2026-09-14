@@ -230,6 +230,16 @@ def TypeAliasesStartV8Vector(builder, numElems):
 def StartV8Vector(builder, numElems):
     return TypeAliasesStartV8Vector(builder, numElems)
 
+def TypeAliasesCreateV8Vector(builder, data):
+    data = list(data)
+    builder.StartVector(1, len(data), 1)
+    for item in reversed(data):
+        builder.PrependInt8(item)
+    return builder.EndVector()
+
+def CreateV8Vector(builder, data):
+    return TypeAliasesCreateV8Vector(builder, data)
+
 def TypeAliasesAddVf64(builder, vf64):
     builder.PrependUOffsetTRelativeSlot(11, flatbuffers.number_types.UOffsetTFlags.py_type(vf64), 0)
 
@@ -241,6 +251,16 @@ def TypeAliasesStartVf64Vector(builder, numElems):
 
 def StartVf64Vector(builder, numElems):
     return TypeAliasesStartVf64Vector(builder, numElems)
+
+def TypeAliasesCreateVf64Vector(builder, data):
+    data = list(data)
+    builder.StartVector(8, len(data), 8)
+    for item in reversed(data):
+        builder.PrependFloat64(item)
+    return builder.EndVector()
+
+def CreateVf64Vector(builder, data):
+    return TypeAliasesCreateVf64Vector(builder, data)
 
 def TypeAliasesEnd(builder):
     return builder.EndObject()
@@ -256,19 +276,33 @@ except:
 class TypeAliasesT(object):
 
     # TypeAliasesT
-    def __init__(self):
-        self.i8 = 0  # type: int
-        self.u8 = 0  # type: int
-        self.i16 = 0  # type: int
-        self.u16 = 0  # type: int
-        self.i32 = 0  # type: int
-        self.u32 = 0  # type: int
-        self.i64 = 0  # type: int
-        self.u64 = 0  # type: int
-        self.f32 = 0.0  # type: float
-        self.f64 = 0.0  # type: float
-        self.v8 = None  # type: List[int]
-        self.vf64 = None  # type: List[float]
+    def __init__(
+        self,
+        i8 = 0,
+        u8 = 0,
+        i16 = 0,
+        u16 = 0,
+        i32 = 0,
+        u32 = 0,
+        i64 = 0,
+        u64 = 0,
+        f32 = 0.0,
+        f64 = 0.0,
+        v8 = None,
+        vf64 = None,
+    ):
+        self.i8 = i8  # type: int
+        self.u8 = u8  # type: int
+        self.i16 = i16  # type: int
+        self.u16 = u16  # type: int
+        self.i32 = i32  # type: int
+        self.u32 = u32  # type: int
+        self.i64 = i64  # type: int
+        self.u64 = u64  # type: int
+        self.f32 = f32  # type: float
+        self.f64 = f64  # type: float
+        self.v8 = v8  # type: Optional[List[int]]
+        self.vf64 = vf64  # type: Optional[List[float]]
 
     @classmethod
     def InitFromBuf(cls, buf, pos):
